@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComfyUI 커스텀 노드 시각 가이드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d10;
+  --card: #13131a;
+  --card2: #16161f;
+  --border: #1e1e2e;
+  --text: #c8c8d8;
+  --white: #f0f0fa;
+  --muted: #5a5a7a;
+  --green: #4ade80;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --orange: #fb923c;
+  --pink: #f472b6;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --cyan: #22d3ee;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Pretendard', -apple-system, sans-serif;
+  min-height: 100vh;
+  padding: 40px 20px 80px;
+}
+
+/* HEADER */
+.hero {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 56px;
+}
+
+.hero-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.hero h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(28px, 5vw, 48px);
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+
+.hero h1 span { color: var(--purple); }
+
+.hero p {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* FILTER TABS */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 900px;
+  margin: 0 auto 48px;
+}
+
+.filter-btn {
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.filter-btn:hover { color: var(--white); border-color: #333; }
+.filter-btn.active { color: var(--white); }
+.filter-btn[data-cat="all"].active { background: #1e1e2e; border-color: var(--purple); color: var(--purple); }
+.filter-btn[data-cat="essential"].active { background: #1a2e1a; border-color: var(--green); color: var(--green); }
+.filter-btn[data-cat="quality"].active { background: #1a1a2e; border-color: var(--blue); color: var(--blue); }
+.filter-btn[data-cat="edit"].active { background: #2e1a2e; border-color: var(--pink); color: var(--pink); }
+.filter-btn[data-cat="video"].active { background: #2e1a1a; border-color: var(--orange); color: var(--orange); }
+.filter-btn[data-cat="upscale"].active { background: #2e2a1a; border-color: var(--yellow); color: var(--yellow); }
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* CARD */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+  cursor: default;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: #2a2a3e;
+}
+
+.card.hidden { display: none; }
+
+/* Card color accent line */
+.card-accent {
+  height: 3px;
+  width: 100%;
+}
+
+/* Card header */
+.card-head {
+  padding: 20px 22px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.card-meta { flex: 1; }
+
+.card-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.card-cat-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Usage visual */
+.usage-bar {
+  padding: 0 22px 16px;
+}
+
+.usage-label {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bar-track {
+  height: 4px;
+  background: #1e1e2e;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s ease;
+}
+
+/* Desc */
+.card-desc {
+  padding: 0 22px 16px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+/* Use cases */
+.use-cases {
+  padding: 0 22px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.use-tag {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #0d0d14;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* Pipeline visualization */
+.pipeline {
+  margin: 0 22px 16px;
+  background: #0a0a0f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.pipe-node {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.pipe-arrow { color: #333; margin: 0 4px; }
+
+/* Card footer */
+.card-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.yt-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  background: #1a1010;
+  border: 1px solid #2e1a1a;
+  color: #f87171;
+  letter-spacing: 0.02em;
+}
+
+.yt-btn:hover { background: #221414; border-color: #f87171; }
+
+.doc-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  background: #0d0d14;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.doc-btn:hover { color: var(--white); border-color: #333; }
+
+/* Divider section */
+.section-divider {
+  max-width: 1100px;
+  margin: 48px auto 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.divider-line { flex: 1; height: 1px; background: var(--border); }
+
+.divider-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Pipeline flow chart */
+.pipeline-section {
+  max-width: 1100px;
+  margin: 0 auto 48px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 32px;
+}
+
+.pipeline-section h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 20px;
+}
+
+.flow-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.flow-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  transition: all 0.2s;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.flow-tab.active {
+  background: #1e1e2e;
+  border-color: var(--purple);
+  color: var(--purple);
+}
+
+.flow-content { display: none; }
+.flow-content.active { display: block; }
+
+.flow-diagram {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+}
+
+.fn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.fa { color: var(--muted); font-size: 16px; }
+
+.flow-desc {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.flow-desc strong { color: var(--text); }
+
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+  .flow-diagram { font-size: 11px; }
+  .fn { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-label">ComfyUI Custom Nodes</div>
+  <h1>디자이너를 위한<br><span>파이프라인 노드</span> 가이드</h1>
+  <p>각 노드가 어떤 용도로, 어떤 순서로 사용되는지<br>파이프라인 흐름과 함께 직관적으로 확인하세요</p>
+</div>
+
+<!-- PIPELINE FLOW -->
+<div class="pipeline-section">
+  <h3>🔀 실제 파이프라인 흐름</h3>
+  <div class="flow-tabs">
+    <button class="flow-tab active" onclick="showFlow('basic')">기본 이미지 생성</button>
+    <button class="flow-tab" onclick="showFlow('style')">스타일 이전</button>
+    <button class="flow-tab" onclick="showFlow('video')">영상 애니메이션</button>
+    <button class="flow-tab" onclick="showFlow('portrait')">인물 보정</button>
+  </div>
+
+  <div class="flow-content active" id="flow-basic">
+    <div class="flow-diagram">
+      <span class="fn" style="background:#1a1a2e;border-color:#3b3b6e;color:#60a5fa">Load Checkpoint</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#1a2e1a;border-color:#3b6e3b;color:#4ade80">CLIP Text Encode</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#2e1a2e;border-color:#6e3b6e;color:#a78bfa">KSampler</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#2e2a1a;border-color:#6e5a3b;color:#fbbf24">VAE Decode</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#1a1a1a;border-color:#3b3b3b;color:#c8c8d8">Save Image</span>
+    </div>
+    <div class="flow-desc">
+      가장 기본적인 텍스트→이미지 흐름이에요. <strong>Load Checkpoint</strong>로 AI 모델을 불러오고, <strong>CLIP Text Encode</strong>로 프롬프트를 처리하고, <strong>KSampler</strong>가 실제로 이미지를 만들어냅니다.
+    </div>
+  </div>
+
+  <div class="flow-content" id="flow-style">
+    <div class="flow-diagram">
+      <span class="fn" style="background:#1a1e2e;border-color:#2e3a6e;color:#60a5fa">Load Image (레퍼런스)</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#2e1a2e;border-color:#6e3b6e;color:#a78bfa">IPAdapter Plus</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#1a2e1a;border-color:#3b6e3b;color:#4ade80">ControlNet</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#2e1a2e;border-color:#6e3b6e;color:#a78bfa">KSampler</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#2e2a1a;border-color:#6e5a3b;color:#fbbf24">Upscaler</span>
+    </div>
+    <div class="flow-desc">
+      레퍼런스 이미지 스타일을 유지하면서 새 이미지 생성. <strong>IPAdapter</strong>가 스타일을 학습하고, <strong>ControlNet</strong>이 구도를 고정해요. 나노바나나 지구 이미지처럼 <strong>시리즈 작업 시 필수</strong>입니다.
+    </div>
+  </div>
+
+  <div class="flow-content" id="flow-video">
+    <div class="flow-diagram">
+      <span class="fn" style="background:#2e1a1a;border-color:#6e3b3b;color:#f87171">Load Video</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#1a2e1a;border-color:#3b6e3b;color:#4ade80">ControlNet (OpenPose)</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#2e1a1e;border-color:#6e3b5e;color:#f472b6">AnimateDiff</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#2e1a2e;border-color:#6e3b6e;color:#a78bfa">IPAdapter</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#1a1a1a;border-color:#3b3b3b;color:#c8c8d8">Video Combine</span>
+    </div>
+    <div class="flow-desc">
+      영상을 AI 애니메이션으로 변환하는 흐름. <strong>AnimateDiff</strong>가 프레임 간 움직임을 처리하고, <strong>IPAdapter</strong>가 스타일을 일관되게 유지해요. 결과물을 영상 파일로 저장합니다.
+    </div>
+  </div>
+
+  <div class="flow-content" id="flow-portrait">
+    <div class="flow-diagram">
+      <span class="fn" style="background:#1a1a2e;border-color:#2e3a6e;color:#60a5fa">Generate Image</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#2e1e1a;border-color:#6e4e3b;color:#fb923c">Impact Pack (Face)</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#1a2a1a;border-color:#3b5a3b;color:#4ade80">Rembg (누끼)</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#2e2a1a;border-color:#6e5a3b;color:#fbbf24">ESRGAN Upscale</span>
+      <span class="fa">→</span>
+      <span class="fn" style="background:#1a1a1a;border-color:#3b3b3b;color:#c8c8d8">Save</span>
+    </div>
+    <div class="flow-desc">
+      인물 이미지 품질 마무리 흐름. <strong>Impact Pack</strong>이 얼굴을 자동 감지해 디테일을 향상시키고, <strong>Rembg</strong>로 배경을 제거한 후 <strong>ESRGAN</strong>으로 고해상도로 키워요.
+    </div>
+  </div>
+</div>
+
+<!-- FILTER -->
+<div class="filters">
+  <button class="filter-btn active" data-cat="all" onclick="filterCards('all', this)">전체 보기</button>
+  <button class="filter-btn" data-cat="essential" onclick="filterCards('essential', this)">🟢 필수</button>
+  <button class="filter-btn" data-cat="quality" onclick="filterCards('quality', this)">🔵 품질 제어</button>
+  <button class="filter-btn" data-cat="edit" onclick="filterCards('edit', this)">🩷 편집/후처리</button>
+  <button class="filter-btn" data-cat="video" onclick="filterCards('video', this)">🟠 영상/애니</button>
+  <button class="filter-btn" data-cat="upscale" onclick="filterCards('upscale', this)">🟡 업스케일</button>
+</div>
+
+<!-- CARDS -->
+<div class="grid" id="cardGrid">
+
+  <!-- 1. ComfyUI Manager -->
+  <div class="card" data-cat="essential">
+    <div class="card-accent" style="background:linear-gradient(90deg,#4ade80,#22d3ee)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#1a2e1a">📦</div>
+      <div class="card-meta">
+        <div class="card-name">ComfyUI Manager</div>
+        <span class="card-cat-badge" style="background:#1a2e1a;color:#4ade80">필수</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>프로 유저 사용률</span><span style="color:#4ade80">100%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%;background:#4ade80"></div></div>
+    </div>
+    <div class="card-desc">다른 모든 노드를 설치·관리하는 <strong style="color:#f0f0fa">앱스토어</strong>. 이게 없으면 나머지 모든 노드 설치가 복잡해짐. 가장 먼저 설치해야 하는 노드.</div>
+    <div class="use-cases">
+      <span class="use-tag">노드 설치/삭제</span>
+      <span class="use-tag">버전 관리</span>
+      <span class="use-tag">의존성 자동 처리</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#1a2e1a;color:#4ade80">Manager</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a1a2e;color:#60a5fa">모든 커스텀 노드 설치 가능</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+Manager+install+tutorial" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://github.com/ltdrdata/ComfyUI-Manager" target="_blank">📄 GitHub</a>
+    </div>
+  </div>
+
+  <!-- 2. ControlNet -->
+  <div class="card" data-cat="quality">
+    <div class="card-accent" style="background:linear-gradient(90deg,#60a5fa,#a78bfa)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#1a1a2e">🎯</div>
+      <div class="card-meta">
+        <div class="card-name">ControlNet</div>
+        <span class="card-cat-badge" style="background:#1a1a2e;color:#60a5fa">품질 제어</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>프로 유저 사용률</span><span style="color:#60a5fa">92%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:92%;background:#60a5fa"></div></div>
+    </div>
+    <div class="card-desc">구도·형태·자세를 <strong style="color:#f0f0fa">고정한 채 스타일만 변경</strong>. 스케치 → 실사, 도면 → 3D 렌더, 포즈 유지 등. <br>Canny(외곽선) / Depth(깊이) / OpenPose(자세) 세 가지가 핵심.</div>
+    <div class="use-cases">
+      <span class="use-tag">스케치→실사</span>
+      <span class="use-tag">구도 고정</span>
+      <span class="use-tag">자세 복사</span>
+      <span class="use-tag">건축 도면→렌더링</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#1a1a2e;color:#60a5fa">레퍼런스 이미지</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a1a2e;color:#60a5fa">ControlNet</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1a2e;color:#a78bfa">KSampler</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+ControlNet+tutorial+2024" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://comfyui-wiki.com/en/tutorial/advanced/how-to-install-and-use-controlnet-models-in-comfyui" target="_blank">📄 공식 가이드</a>
+    </div>
+  </div>
+
+  <!-- 3. IPAdapter Plus -->
+  <div class="card" data-cat="quality">
+    <div class="card-accent" style="background:linear-gradient(90deg,#a78bfa,#f472b6)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#2e1a2e">🖼</div>
+      <div class="card-meta">
+        <div class="card-name">IPAdapter Plus</div>
+        <span class="card-cat-badge" style="background:#2e1a2e;color:#a78bfa">품질 제어</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>프로 유저 사용률</span><span style="color:#a78bfa">80%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:80%;background:#a78bfa"></div></div>
+    </div>
+    <div class="card-desc">레퍼런스 이미지의 <strong style="color:#f0f0fa">스타일·캐릭터 일관성 유지</strong>. "이 이미지 스타일로 새 이미지 만들어줘" 가 가능. 패션, 캐릭터 시리즈 작업에 필수. LoRA 없이도 캐릭터 고정 가능.</div>
+    <div class="use-cases">
+      <span class="use-tag">스타일 이전</span>
+      <span class="use-tag">캐릭터 일관성</span>
+      <span class="use-tag">시리즈 제작</span>
+      <span class="use-tag">1-image LoRA 대체</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#2e1a2e;color:#a78bfa">스타일 이미지</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1a2e;color:#a78bfa">IPAdapter</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1a2e;color:#a78bfa">KSampler</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1a2e;color:#a78bfa">일관된 결과</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+IPAdapter+Plus+tutorial" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://github.com/comfyorg/comfyui-ipadapter" target="_blank">📄 GitHub</a>
+    </div>
+  </div>
+
+  <!-- 4. WAS Node Suite -->
+  <div class="card" data-cat="edit">
+    <div class="card-accent" style="background:linear-gradient(90deg,#f472b6,#fb923c)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#2e1a1e">🧰</div>
+      <div class="card-meta">
+        <div class="card-name">WAS Node Suite</div>
+        <span class="card-cat-badge" style="background:#2e1a1e;color:#f472b6">편집/후처리</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>프로 유저 사용률</span><span style="color:#f472b6">90%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:90%;background:#f472b6"></div></div>
+    </div>
+    <div class="card-desc">색보정·이미지 처리·텍스트 등 <strong style="color:#f0f0fa">100개 이상의 유틸리티 노드 모음</strong>. 포토샵에서 하던 기본 편집 작업을 ComfyUI 안에서 처리 가능. 거의 모든 프로 워크플로우에 포함됨.</div>
+    <div class="use-cases">
+      <span class="use-tag">색보정</span>
+      <span class="use-tag">이미지 크롭/리사이즈</span>
+      <span class="use-tag">텍스트 오버레이</span>
+      <span class="use-tag">마스크 처리</span>
+      <span class="use-tag">파일 관리</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#1a1a1a;color:#c8c8d8">생성 이미지</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1a1e;color:#f472b6">WAS 색보정</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1a1e;color:#f472b6">WAS 리사이즈</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a1a1a;color:#c8c8d8">Save</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+WAS+Node+Suite+tutorial" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://github.com/WASasquatch/was-node-suite-comfyui" target="_blank">📄 GitHub</a>
+    </div>
+  </div>
+
+  <!-- 5. Impact Pack -->
+  <div class="card" data-cat="edit">
+    <div class="card-accent" style="background:linear-gradient(90deg,#fb923c,#fbbf24)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#2e1e1a">👤</div>
+      <div class="card-meta">
+        <div class="card-name">Impact Pack</div>
+        <span class="card-cat-badge" style="background:#2e1e1a;color:#fb923c">편집/후처리</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>프로 유저 사용률</span><span style="color:#fb923c">85%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:85%;background:#fb923c"></div></div>
+    </div>
+    <div class="card-desc">AI가 생성한 이미지에서 <strong style="color:#f0f0fa">얼굴을 자동 감지해 디테일 향상</strong>. 얼굴이 뭉개지거나 이상하게 나왔을 때 자동 수정. 인물 이미지 작업 시 필수 중의 필수.</div>
+    <div class="use-cases">
+      <span class="use-tag">얼굴 자동 향상</span>
+      <span class="use-tag">디테일 복원</span>
+      <span class="use-tag">세그멘테이션</span>
+      <span class="use-tag">인페인팅</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#1a1a2e;color:#60a5fa">이미지 생성</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1e1a;color:#fb923c">Face Detailer</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e2a1a;color:#fbbf24">Upscaler</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a1a1a;color:#c8c8d8">완성</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+Impact+Pack+face+detailer" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://github.com/ltdrdata/ComfyUI-Impact-Pack" target="_blank">📄 GitHub</a>
+    </div>
+  </div>
+
+  <!-- 6. Rembg -->
+  <div class="card" data-cat="edit">
+    <div class="card-accent" style="background:linear-gradient(90deg,#22d3ee,#4ade80)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#1a2a2e">✂️</div>
+      <div class="card-meta">
+        <div class="card-name">Rembg (배경 제거)</div>
+        <span class="card-cat-badge" style="background:#1a2a2e;color:#22d3ee">편집/후처리</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>프로 유저 사용률</span><span style="color:#22d3ee">70%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:70%;background:#22d3ee"></div></div>
+    </div>
+    <div class="card-desc">AI로 <strong style="color:#f0f0fa">배경을 자동으로 제거 (누끼)</strong>. 포토샵 없이 ComfyUI 안에서 바로 처리. 투명 배경 PNG로 저장해 다른 배경에 합성 가능.</div>
+    <div class="use-cases">
+      <span class="use-tag">누끼 따기</span>
+      <span class="use-tag">배경 교체</span>
+      <span class="use-tag">합성 작업</span>
+      <span class="use-tag">투명 PNG 추출</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#1a1a2e;color:#60a5fa">생성 이미지</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a2a2e;color:#22d3ee">Rembg</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a1a1a;color:#c8c8d8">투명 PNG</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a2e1a;color:#4ade80">새 배경 합성</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+Rembg+background+removal" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://github.com/Gourieff/comfyui-reactor-node" target="_blank">📄 GitHub</a>
+    </div>
+  </div>
+
+  <!-- 7. AnimateDiff -->
+  <div class="card" data-cat="video">
+    <div class="card-accent" style="background:linear-gradient(90deg,#fb923c,#f472b6)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#2e1a1e">🎬</div>
+      <div class="card-meta">
+        <div class="card-name">AnimateDiff Evolved</div>
+        <span class="card-cat-badge" style="background:#2e1a1e;color:#fb923c">영상/애니</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>영상 작업자 사용률</span><span style="color:#fb923c">95%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:95%;background:#fb923c"></div></div>
+    </div>
+    <div class="card-desc">정지 이미지를 <strong style="color:#f0f0fa">짧은 영상/애니메이션으로 변환</strong>. 영상을 다른 AI 스타일로 re-style하는 것도 가능. IPAdapter와 함께 쓰면 스타일 일관성까지 유지.</div>
+    <div class="use-cases">
+      <span class="use-tag">이미지→영상</span>
+      <span class="use-tag">영상 스타일 변환</span>
+      <span class="use-tag">루프 애니메이션</span>
+      <span class="use-tag">캐릭터 움직임</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#2e1a1a;color:#f87171">영상 입력</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1a1e;color:#fb923c">AnimateDiff</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1a2e;color:#a78bfa">IPAdapter</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a1a1a;color:#c8c8d8">MP4 저장</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+AnimateDiff+tutorial+2024" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved" target="_blank">📄 GitHub</a>
+    </div>
+  </div>
+
+  <!-- 8. ESRGAN Upscaler -->
+  <div class="card" data-cat="upscale">
+    <div class="card-accent" style="background:linear-gradient(90deg,#fbbf24,#fb923c)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#2e2a1a">🔍</div>
+      <div class="card-meta">
+        <div class="card-name">ESRGAN Upscaler</div>
+        <span class="card-cat-badge" style="background:#2e2a1a;color:#fbbf24">업스케일</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>프로 유저 사용률</span><span style="color:#fbbf24">88%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:88%;background:#fbbf24"></div></div>
+    </div>
+    <div class="card-desc">512px 이미지를 <strong style="color:#f0f0fa">2K·4K 이상으로 선명하게 확대</strong>. 포스터, 전시물, 클라이언트 납품용 고해상도 출력에 필수. Impact Pack의 Face Detailer와 세트로 사용.</div>
+    <div class="use-cases">
+      <span class="use-tag">고해상도 출력</span>
+      <span class="use-tag">포스터용 확대</span>
+      <span class="use-tag">인쇄 품질</span>
+      <span class="use-tag">SNS 고화질</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#2e1e1a;color:#fb923c">Face Detailer</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e2a1a;color:#fbbf24">ESRGAN 4x</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a1a1a;color:#c8c8d8">고해상도 PNG</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+ESRGAN+upscale+tutorial" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://github.com/comfyanonymous/ComfyUI" target="_blank">📄 내장 노드</a>
+    </div>
+  </div>
+
+  <!-- 9. LoRA Loader -->
+  <div class="card" data-cat="quality">
+    <div class="card-accent" style="background:linear-gradient(90deg,#60a5fa,#22d3ee)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#1a1e2e">🎨</div>
+      <div class="card-meta">
+        <div class="card-name">LoRA Loader</div>
+        <span class="card-cat-badge" style="background:#1a1e2e;color:#60a5fa">품질 제어</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>프로 유저 사용률</span><span style="color:#60a5fa">82%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:82%;background:#60a5fa"></div></div>
+    </div>
+    <div class="card-desc">특정 스타일, 캐릭터, 아티스트 화풍을 학습한 <strong style="color:#f0f0fa">미니 모델(LoRA)을 불러와 적용</strong>. 애니 스타일, 특정 일러스트레이터 화풍, 특정 인물 등을 정밀하게 구현 가능.</div>
+    <div class="use-cases">
+      <span class="use-tag">특정 화풍 적용</span>
+      <span class="use-tag">캐릭터 고정</span>
+      <span class="use-tag">애니/실사 스타일</span>
+      <span class="use-tag">Civitai 모델 활용</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#1a1a2e;color:#60a5fa">Checkpoint</span>
+      <span class="pipe-arrow">+</span>
+      <span class="pipe-node" style="background:#1a1e2e;color:#60a5fa">LoRA Loader</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#2e1a2e;color:#a78bfa">KSampler</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+LoRA+tutorial+how+to+use" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://civitai.com" target="_blank">📄 Civitai (LoRA 다운)</a>
+    </div>
+  </div>
+
+  <!-- 10. SDXL Prompt Styler -->
+  <div class="card" data-cat="essential">
+    <div class="card-accent" style="background:linear-gradient(90deg,#4ade80,#a78bfa)"></div>
+    <div class="card-head">
+      <div class="card-icon" style="background:#1e2e1a">✍️</div>
+      <div class="card-meta">
+        <div class="card-name">SDXL Prompt Styler</div>
+        <span class="card-cat-badge" style="background:#1e2e1a;color:#4ade80">필수</span>
+      </div>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-label"><span>초보~중급 사용률</span><span style="color:#4ade80">75%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:75%;background:#4ade80"></div></div>
+    </div>
+    <div class="card-desc">프롬프트에 <strong style="color:#f0f0fa">스타일 템플릿을 원클릭으로 추가</strong>. photorealistic, anime, oil painting, cinematic 등 수십 가지 스타일을 드롭다운으로 선택해 프롬프트에 자동 적용.</div>
+    <div class="use-cases">
+      <span class="use-tag">스타일 원클릭 적용</span>
+      <span class="use-tag">프롬프트 템플릿</span>
+      <span class="use-tag">초보자 진입 장벽 낮춤</span>
+    </div>
+    <div class="pipeline">
+      <span class="pipe-node" style="background:#1e2e1a;color:#4ade80">텍스트 프롬프트</span>
+      <span class="pipe-arrow">+</span>
+      <span class="pipe-node" style="background:#1e2e1a;color:#4ade80">Style 선택</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-node" style="background:#1a1a2e;color:#60a5fa">CLIP Encode</span>
+    </div>
+    <div class="card-footer">
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=ComfyUI+SDXL+Prompt+Styler" target="_blank">▶ YouTube 튜토리얼</a>
+      <a class="doc-btn" href="https://github.com/twri/sdxl_prompt_styler" target="_blank">📄 GitHub</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function filterCards(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.card').forEach(card => {
+    if (cat === 'all' || card.dataset.cat === cat) {
+      card.classList.remove('hidden');
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+}
+
+function showFlow(id) {
+  document.querySelectorAll('.flow-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.flow-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('flow-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
